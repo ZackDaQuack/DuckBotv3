@@ -1,0 +1,7 @@
+aiohttp==3.9.5
+better_profanity==0.7.0
+colorama==0.4.6
+colorlog==6.8.2
+py-cord==2.5.0
+Pillow==10.4.0
+ratelimit==2.2.1
