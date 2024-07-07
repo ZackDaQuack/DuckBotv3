@@ -1,8 +1,10 @@
 import discord
+from discord.ext import commands
 import configparser
 from modules.duckLog import logger
 from colorama import Fore, Style
 
+# Print banner with color
 print(f"""\033[38;2;255;165;0m
 ______            _   ______       _         _____ 
 |  _  \          | |  | ___ \     | |       |____ |
@@ -17,8 +19,7 @@ ______            _   ______       _         _____
 config = configparser.ConfigParser()
 config.read("config.ini")
 
-bot = discord.Bot(intents=discord.Intents.all())
-
+bot = commands.Bot(command_prefix="/", intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
