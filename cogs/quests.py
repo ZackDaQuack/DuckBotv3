@@ -1,3 +1,35 @@
+"""
+
+File: quests.py
+Author: ZackDaQuack
+Last Edited: 07/04/2024
+
+Info:
+
+This module implements the quest system. Users can receive quests,
+complete them by performing actions on the server, and earn social credits.
+The module tracks quest progress, handles cooldowns, and provides commands
+for users to interact with the quest system.
+
+Rage:
+
+This dumb script took forever to make. Idk why I even decided to make this.
+
+
+Commands:
+    /quest status: Displays the user's current quest progress or cooldown status.
+    /quest get: Assigns new quests to the user if they are not on cooldown and don't have active quests.
+
+Quest Types:
+    - Send messages
+    - Reply to messages
+    - React to messages
+    - Send images
+    - Chat with the ai
+
+"""
+
+
 import discord
 import configparser
 import ast
@@ -8,6 +40,7 @@ from storage.lists import china_solgan
 from random import randint
 from datetime import datetime, timedelta
 
+# I'm keeping this here lol
 #############################################
 #    Rip your eyes, this code sucks         #
 #         quests.py [07/04/24]              #
@@ -86,7 +119,6 @@ def is_on_cooldown(quest_data):
 class Quests(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        logger.info("[QUESTS]   Initialized")
 
     quest_cmd = discord.SlashCommandGroup("quest", "Quest commands")
 

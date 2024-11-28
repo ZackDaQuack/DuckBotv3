@@ -1,36 +1,30 @@
+"""
+
+File: lists.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+Info:
+
+This script just keeps strings of text for use in the rest of the program.
+random.choice returns something random when needed
+
+"""
+
 from random import choice
 
-ratelimit_responses = [
-    "Quack! Rate limit! Stop it!",
-    "You're still ratelimited! Are you deaf?!",
-    "Slow down, dude! I'm about to explode!",
-    "Back off! I'm not your personal servant!",
-    "Too fast! You're making me crazy!",
-    "Try again later! Or else!",
-    "Stop it! Stop it! Stop it!",
-    "You're breaking me! I'm warning you!",
-    "Rate limit reached! Go away!",
-    "Countdown! [???] seconds left! Don't make me count!",
-    "You're pushing it! One more request and I'm out!",
-    "I'm losing my feathers! Help!",
-    "Stop! Just stop!",
-    "No more requests! I'm going nuts!",
-    "Whoa there, partner! Slow down! You're hitting the rate limit.",
-    "Hold your horses! You're going too fast! Give me a break.",
-    "Easy there, tiger! Take a breather, you're overloading me.",
-    "I'm starting to feel overwhelmed! Please ease up.",
-    "Your requests are coming in too quickly. Please slow down.",
-    "I'm not a robot, you know! I have limits too!",
-    "Don't make me turn into a pumpkin! Slow down!",
-    "You're making me sweat! Chill out a bit.",
-    "I'm starting to feel dizzy! Give me a moment to catch my breath.",
-    "I can't keep up with you! Please take it easy.",
-    "You're testing my patience! Back off!",
-    "I'm getting a headache! Stop making so many requests.",
-    "I'm going to need a vacation! Please give me some time to recover.",
-    "Don't push your luck! I'm about to hit the roof.",
-    "I'm not a bottomless well! I have limits.",
-]
+
+async def random_ratelimit():
+    ratelimit_responses = [
+        "you have been [ratelimited](<https://takeb1nzyto.space/>)",
+        "Too many requests! Try again later.",
+        "Rate limit exceeded. Please chill for a bit.",
+        "Hold up, you're going too fast. Rate limited.",
+        "Try again in a little while. Rate limited.",
+        "Rate limit hit. Cool your jets for a minute.",
+        "Not so fast! You've been rate limited."
+    ]
+    return choice(ratelimit_responses)
 
 
 async def generate_propaganda(name):

@@ -1,3 +1,18 @@
+"""
+
+File: status.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+Info:
+
+This module contains the Roblox status detector.
+
+Slash Commands:
+    /status <bool> <msg>: Sets the status
+
+"""
+
 import aiohttp
 import discord
 import configparser
@@ -49,7 +64,6 @@ class Command(commands.Cog):
         self.bot.shoutMessage = rblx_info.get("shout_message")
         self.bot.isUp = rblx_info.get("macsploit_updated")
         self.version_checker.start()
-        logger.info("[STATUS]   Initialized")
 
     async def edit_status(self, to_set):
         channel = await self.bot.fetch_channel(status_channel)
@@ -80,10 +94,8 @@ class Command(commands.Cog):
                 color=0x06df23
             )
 
-        embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/1188161972500443208/"
-                "f7b63c2383dbcb2c21cce3b06b172b4d.webp?size=240"
-        )
+        embed.set_thumbnail(url="https://cdn.discordapp.com/icons/1262951163943452723/"
+                                "990f8650b8edcf8fccf17ff73c23c8d1.webp?size=160")
         embed.set_footer(
             text=f"Data updated on {datetime.now().strftime('%Y-%m-%d at %#I:%M %p')} (CT)",
             icon_url="https://png.pngtree.com/png-vector/20190118/ourlarge/pngtree-vector-clock-icon-png"
@@ -120,6 +132,10 @@ class Command(commands.Cog):
 
     @discord.slash_command(name="status", description="Sets the status", guild_ids=guild_id)
     async def set_status(self, ctx, to_set: bool, important_message: str = ""):
+
+        if not ctx.author.guild_permissions.administrator:
+            return await ctx.respond("Quack! You need to be an admin to run this!", ephemeral=True)
+
         if to_set:
             self.bot.isUp = True
             await update_json("macsploit_updated", True)

@@ -1,3 +1,15 @@
+"""
+
+File: settings.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+Info:
+
+This module lets you modify (some of) config.ini directly from the bot.
+
+"""
+
 import discord
 import configparser
 from discord.ext import commands
@@ -22,7 +34,6 @@ class Settings(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        logger.info("[SETTINGS] Initialized")
 
     set_cmd = discord.SlashCommandGroup("set", "Setting commands")
 

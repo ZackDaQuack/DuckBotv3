@@ -1,3 +1,15 @@
+"""
+
+File: duckLog.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+Info:
+
+Uh it does what you think. Creates a logger, and saves files. Pretty boring.
+
+"""
+
 import logging
 import colorlog
 import configparser

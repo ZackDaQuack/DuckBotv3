@@ -1,3 +1,26 @@
+"""
+
+File: credits.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+Info:
+
+This module implements the Social Credit System. It allows
+administrators to add, deduct, set, and check user credits.
+It also provides a leaderboard and image generation for
+credit adjustments.
+
+
+Slash Commands:
+    /credit add <user> <amount>: Adds credits to a user. Requires administrator permission.
+    /credit deduct <user> <amount>: Deducts credits from a user. Requires administrator permission.
+    /credit set <user> <amount>: Sets a user's credits to a specific amount. Requires master admin permission
+    /credit check <user>: Checks the credits of the specified user or the command invoker if no user is provided.
+    /credit leaderboard <user>: Displays the top 10 users on the leaderboard and the rank of the specified user
+
+"""
+
 import discord
 import configparser
 from discord.ext import commands
@@ -37,7 +60,6 @@ async def gen_cred_img(amount, method):
 class Credits(commands.Cog):
 
     def __init__(self, bot):
-        logger.info("[CREDITS]  Initialized")
         self.bot = bot
 
     cred_cmd = discord.SlashCommandGroup("credit", "Credit commands")

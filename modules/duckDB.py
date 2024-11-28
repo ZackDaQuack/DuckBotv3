@@ -1,4 +1,53 @@
+"""
+
+File: duckDB.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+
+Info:
+
+This module provides a simple interface for interacting with an SQLite database
+(specifically, `duck.db`) using the `sqlite3` library. It's designed to manage
+user data, including credits, quest status, and other information relevant to a
+Discord bot.
+
+
+Database Structure:
+
+The module uses a single table, `users`, with the following columns:
+    - user_id (INTEGER PRIMARY KEY): The Discord user ID.
+    - credits (INTEGER): The user's social credits.
+    - quest_status (TEXT): The user's current quest status (serialized data).
+
+
+Methods:
+
+User Data Management:
+    - ensure_user(user_id): Creates a new user entry if one doesn't exist, initializing credits to 0 and quest status to an empty string.
+    - user_exists(user_id): Checks if a user exists in the database.
+    - delete_user(user_id): Deletes a user from the database.
+
+Credit Management:
+    - add_credits(user_id, num_to_add): Adds credits to a user.
+    - deduct_credits(user_id, num_to_deduct): Deducts credits from a user.
+    - set_credits(user_id, num_to_set): Sets a user's credits to a specific value.
+    - get_credits(user_id): Retrieves a user's credit balance.
+
+Quest Management:
+    - set_quest_data(user_id, status): Updates a user's quest status.  `status` is expected to be a string representation of quest data (e.g., from `ast.literal_eval`).
+    - get_quest_data(user_id): Retrieves a user's quest status.
+
+Leaderboard:
+    - leaderboard(user_id): Returns the top 10 users on the leaderboard (sorted by credits), the specified user's rank, and their credit balance.
+
+Database Latency:
+    - get_latency():  Measures and returns the database latency in milliseconds.
+
+"""
+
 import sqlite3
+from time import monotonic
 
 
 class DuckDB:
@@ -124,3 +173,10 @@ class DuckDB:
                 WHERE user_id = ?
             ''', (user_id,))
             return result.rowcount > 0
+
+    async def get_latency(self):
+        start_time = monotonic()
+        with self.conn:
+            self.conn.execute('SELECT 1')
+        end_time = monotonic()
+        return (end_time - start_time) * 1000

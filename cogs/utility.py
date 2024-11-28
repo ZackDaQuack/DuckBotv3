@@ -1,3 +1,33 @@
+"""
+
+File: utlilty.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+Info:
+
+This module contains the utility / fun commands
+Also handles guild validation and forwarding dms to staff channel
+
+Slash Commands:
+    /duck: Grabs a random duck image from Pixabay
+    /say <msg>: Sends a message to the channel.
+    /annoy <target> <amount>: Mass pings a user
+    /dm <user> <message>: Sends a direct message to a user.
+    /delete_user <user>: Deletes a user from duckDB
+    /get_user_data <user>: Retrieves user data from duckDB
+    /ping: Checks the bot's latency.
+    /shutdown: Shuts down the bot.
+
+Prefix Command:
+    execute <python_script>: Executes a Python script. (be very careful, this will run ANYTHING on your computer)
+
+"""
+
+import asyncio
+import contextlib
+import io
+import traceback
 import discord
 import configparser
 import aiohttp
@@ -5,7 +35,7 @@ from discord.ext import commands
 from modules.duckLog import logger
 from storage.lists import generate_propaganda
 from modules.duckDB import DuckDB
-from random import randint
+from random import randint, shuffle, sample
 
 #  We need more fun commands :fire:  #
 
@@ -42,11 +72,28 @@ async def duck():
                 return None
 
 
+class ShutdownModel(discord.ui.Modal):
+    stupid_words = ["sigma", "balls", "gay", "esex", "quack", "alpha", "beta", "lmfao"]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.confirmation_code = " ".join(sample(self.stupid_words, 3))
+        self.add_item(discord.ui.InputText(label=f"Type: {self.confirmation_code}"))
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.children[0].value.lower() == self.confirmation_code:
+            await interaction.response.send_message("Goodbye!")
+
+            await interaction.client.close()  # duck murderer
+
+        else:
+            await interaction.response.send_message("Incorrect confirmation code.", ephemeral=True)
+
+
 class Utility(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        logger.info("[UTILITY]  Initialized")
 
     db_cmd = discord.SlashCommandGroup("db", "Database commands")
 
@@ -79,6 +126,65 @@ class Utility(commands.Cog):
         channel = await self.bot.fetch_channel(ctx.channel.id)
         await channel.send(message)
         logger.warning(f"[CMD] {ctx.user.name} made the bot say \"{message}\"")
+
+    @discord.slash_command(name="annoy", description="Be annoying", guild_ids=guild_id)
+    async def annoy(self, ctx, target: discord.User, amount: int):
+        if ctx.author.id == 893131404437762058 or ctx.author.id == 717854704335585281 or ctx.author.id == 773306136685183006:
+            logger.warning(f"[UTILITY] {ctx.author.name} annoying {target.name} {amount} times.")
+
+            if amount > 200:
+                return await ctx.respond("no.", ephemeral=True)
+
+            await ctx.defer()
+
+            accessible_channels = [channel for channel in ctx.guild.text_channels if
+                                   channel.permissions_for(target).send_messages and
+                                   channel.permissions_for(ctx.guild.me).send_messages]
+
+            if not accessible_channels:
+                return await ctx.respond("Quack! There are no channels I can send messages to.", ephemeral=True)
+
+            shuffle(accessible_channels)
+            channel_cycle = accessible_channels * (amount // len(accessible_channels) + 1)
+
+            stop_flag = False
+
+            async def stop_annoy(interaction):
+                nonlocal stop_flag
+                if interaction.user == ctx.author:
+                    stop_flag = True
+                    await interaction.response.send_message("Stopping", ephemeral=True)
+                else:
+                    await interaction.response.send_message("You can't stop this!", ephemeral=True)
+
+            stop_button = discord.ui.Button(label="Stop", style=discord.ButtonStyle.red)
+            stop_button.callback = stop_annoy
+            view = discord.ui.View()
+            view.add_item(stop_button)
+
+            response_message = await ctx.respond(f"Sending pings... 0/{amount}", view=view)
+
+            for i in range(amount):
+                if stop_flag:
+                    break
+
+                try:
+                    await channel_cycle[i].send(target.mention, delete_after=0.1)
+                    await response_message.edit(content=f"Sending pings... {i + 1}/{amount}")
+                    await asyncio.sleep(.5)
+                except discord.Forbidden:
+                    await ctx.respond(
+                        f"Quack! Couldn't send a message to {channel_cycle[i].mention}. "
+                        f"I don't have permission there!",
+                        ephemeral=True)
+
+            if stop_flag:
+                await response_message.edit(content="Quack!", view=None)
+            else:
+                await response_message.edit(content="Quack Quack!", view=None)
+
+        else:
+            return await ctx.respond("Quack! You need to be a master admin for this!", ephemeral=True)
 
     @discord.slash_command(name="dm", description="Send a...personal dm.....", guild_ids=guild_id)
     async def dm(self, ctx, user: discord.User, message: str):
@@ -118,6 +224,63 @@ class Utility(commands.Cog):
         user_quests = await db.get_quest_data(user.id)
 
         await ctx.respond(f"**UserID:** {user.id}\n**Credits:** {user_crd}\n**Quests:** {user_quests}", ephemeral=True)
+
+    @discord.slash_command(name="ping", description="Get the bot's ping", guild_ids=guild_id)
+    async def ping(self, ctx):
+        latency = round(self.bot.latency * 1000)
+        db_latency = await db.get_latency()
+
+        embed = discord.Embed(
+            title="Pong! 🦆",
+            color=0x45b702
+        )
+        embed.add_field(name="Bot Latency", value=f"`{latency}ms`{' (nice)' if db_latency == 69 else ''}", inline=True)
+        embed.add_field(name="DB Latency", value=f"`{db_latency}ms`", inline=True)
+
+        await ctx.respond(embed=embed)
+
+    @discord.slash_command(name="shutdown", description="Emergency shutdown. Stops everything", guild_ids=guild_id)
+    async def shutdown(self, ctx):
+        if not ctx.author.guild_permissions.administrator:
+            return await ctx.respond("❤️ But it refused.", ephemeral=True)
+
+        modal = ShutdownModel(title="Emergency Shutdown")
+        await ctx.send_modal(modal)
+
+    # Remote code execution :shocked:
+    @commands.command(name="execute")
+    async def execute(self, ctx, *, python: str):
+        if ctx.author.id != master:
+            return
+
+        local_vars = {
+            "discord": discord,
+            "commands": commands,
+            "bot": self.bot,
+            "ctx": ctx,
+            "channel": ctx.channel,
+            "author": ctx.author,
+            "guild": ctx.guild,
+            "message": ctx.message,
+        }
+
+        stdout = io.StringIO()
+
+        try:
+            with contextlib.redirect_stdout(stdout):
+                exec(compile(python, "<string>", "exec"), local_vars)
+
+            output = stdout.getvalue()
+            if output:
+                await ctx.reply(f"```py\n{output}\n```")
+            else:
+                await ctx.reply("Code executed successfully (no output).")
+
+        except Exception:
+            error_message = f"```py\n{traceback.format_exc()}\n```"
+            if len(error_message) > 2000:
+                error_message = f"```py\n{traceback.format_exc()[-1997:]}\n```"
+            await ctx.reply(error_message)
 
     # Guild enforcer
     async def validate_guild(self, guild):

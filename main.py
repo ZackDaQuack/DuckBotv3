@@ -1,33 +1,68 @@
+"""
+
+File: main.py
+Author: ZackDaQuack
+Last Edited: 11/27/2024
+
+
+Info:
+
+Fires up the bot and loads cog modules. (with a nice amount of lines)
+
+"""
+
+import time
 import discord
+from discord.ext import commands
 import configparser
 from modules.duckLog import logger
 from colorama import Fore, Style
 
-print(f"""\033[38;2;255;165;0m
-______            _   ______       _         _____ 
-|  _  \          | |  | ___ \     | |       |____ |
-| | | |_   _  ___| | _| |_/ / ___ | |___   __   / /
-| | | | | | |/ __| |/ / ___ \/ _ \| __\ \ / /   \ \\
-| |/ /| |_| | (__|   <| |_/ / (_) | |_ \ V /.___/ /
-|___/  \__,_|\___|_|\_\____/ \___/ \__| \_/ \____/ 
-                               by {Fore.LIGHTGREEN_EX}ZackDaQuack            
-                               
-{Fore.LIGHTBLUE_EX}Modules:{Style.RESET_ALL}""")
 
-config = configparser.ConfigParser()
-config.read("config.ini")
+def run_bot():
+    config = configparser.ConfigParser()
+    config.read("config.ini")
 
-bot = discord.Bot(intents=discord.Intents.all())
+    intents = discord.Intents.all()
+    bot = commands.Bot(command_prefix="duck!", intents=intents)
+
+    @bot.event
+    async def on_ready():
+        print()
+        logger.info("[MAIN] Quack! Bot is online.")
+
+    cogs = ["duckAI", "utility", "credits", "quests", "status", "settings"]
+
+    for cog in cogs:
+        try:
+            bot.load_extension(f"cogs.{cog}")
+            print(f"{Fore.LIGHTBLUE_EX}[MAIN] Loaded cog: {cog}{Style.RESET_ALL}")
+        except Exception as e:
+            logger.error(f"[MAIN] Failed to load cog {cog}: {e}")
+
+    try:
+        bot.run(config.get("KEYS", "discord"))
+
+    except discord.LoginFailure as e:
+        logger.critical(f"[MAIN] Login Failure: {e}")
+        return
+
+    except Exception as e:
+        logger.error(f"[MAIN] An unexpected error occurred: {e}")
 
 
-@bot.event
-async def on_ready():
-    logger.info("[MAIN] Quack! Bot is online.")
+if __name__ == "__main__":
+    print(f"""{Fore.LIGHTYELLOW_EX}
+    ______            _   ______       _         _____ 
+    |  _  \          | |  | ___ \     | |       |____ |
+    | | | |_   _  ___| | _| |_/ / ___ | |___   __   / /
+    | | | | | | |/ __| |/ / ___ \/ _ \| __\ \ / /   \ \\
+    | |/ /| |_| | (__|   <| |_/ / (_) | |_ \ V /.___/ /
+    |___/  \__,_|\___|_|\_\____/ \___/ \__| \_/ \____/ 
+                                   by {Fore.LIGHTGREEN_EX}ZackDaQuack{Style.RESET_ALL}            
 
-cogs = ["duckAI", "utility", "credits", "quests", "status", "settings"]
-for cog in cogs:
-    bot.load_extension(f"cogs.{cog}")
+    """)
 
-print(f"\n{Fore.LIGHTBLUE_EX}Log:{Style.RESET_ALL}")
-
-bot.run(config.get("KEYS", "discord"))
+    while True:
+        run_bot()
+        time.sleep(60)
