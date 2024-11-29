@@ -2,7 +2,7 @@
 
 File: utlilty.py
 Author: ZackDaQuack
-Last Edited: 11/27/2024
+Last Edited: 11/28/2024
 
 Info:
 
@@ -17,6 +17,7 @@ Slash Commands:
     /delete_user <user>: Deletes a user from duckDB
     /get_user_data <user>: Retrieves user data from duckDB
     /ping: Checks the bot's latency.
+    /smite: "Smites" a user. (Basically a timeout)
     /shutdown: Shuts down the bot.
 
 Prefix Command:
@@ -27,6 +28,13 @@ Prefix Command:
 import asyncio
 import contextlib
 import io
+import os
+import random
+import time
+from datetime import timedelta
+
+import matplotlib.pyplot as plt
+import psutil
 import traceback
 import discord
 import configparser
@@ -82,10 +90,9 @@ class ShutdownModel(discord.ui.Modal):
 
     async def callback(self, interaction: discord.Interaction):
         if self.children[0].value.lower() == self.confirmation_code:
+            logger.info(f"[MAIN] {interaction.user.name} shutdown the bot.")
             await interaction.response.send_message("Goodbye!")
-
             await interaction.client.close()  # duck murderer
-
         else:
             await interaction.response.send_message("Incorrect confirmation code.", ephemeral=True)
 
@@ -130,7 +137,7 @@ class Utility(commands.Cog):
     @discord.slash_command(name="annoy", description="Be annoying", guild_ids=guild_id)
     async def annoy(self, ctx, target: discord.User, amount: int):
         if ctx.author.id == 893131404437762058 or ctx.author.id == 717854704335585281 or ctx.author.id == 773306136685183006:
-            logger.warning(f"[UTILITY] {ctx.author.name} annoying {target.name} {amount} times.")
+            logger.warning(f"[CMD] {ctx.author.name} annoying {target.name} {amount} times.")
 
             if amount > 200:
                 return await ctx.respond("no.", ephemeral=True)
@@ -186,19 +193,39 @@ class Utility(commands.Cog):
         else:
             return await ctx.respond("Quack! You need to be a master admin for this!", ephemeral=True)
 
+    # Sends a dm to a user, splits it into 1500 character chunks.
     @discord.slash_command(name="dm", description="Send a...personal dm.....", guild_ids=guild_id)
-    async def dm(self, ctx, user: discord.User, message: str):
+    async def dm(self, ctx: discord.ApplicationContext, user: discord.User, message: str):
         if not ctx.author.guild_permissions.administrator:
             return await ctx.respond("Quack! You need to be an admin to run this!", ephemeral=True)
 
+        await ctx.defer(ephemeral=True)
+
         try:
-            await user.send(message)
+            chunks = []
+            current_chunk = ""
+            for word in message.split():
+                next_chunk = current_chunk + " " + word
+                if len(next_chunk) < 1500:
+                    current_chunk = next_chunk
+                else:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = word
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+
+            for chunk in chunks:
+                await user.send(chunk)
+
         except discord.Forbidden:
             await ctx.respond("Failed to dm. User probably blocked the bot.", ephemeral=True)
+        except Exception as e:
+            await ctx.respond(f"An error occurred: {e}", ephemeral=True)
+            logger.warning(f"[DM] Error sending DM: {e}")
         else:
             await ctx.respond("Done", ephemeral=True)
-
-        logger.warning(f"[SAY] {ctx.user.name} made the bot dm \"{message}\" to {user.name}")
+            logger.warning(f"[DM] {ctx.author.name} made the bot dm "
+                           f"\"{message if len(message) < 50 else '[LONG MESSAGE]'}\" to {user.name}")
 
     @db_cmd.command(name="delete_user", description="Remove a user from the database", guild_ids=guild_id)
     async def delete_user(self, ctx, user: discord.User):
@@ -225,19 +252,131 @@ class Utility(commands.Cog):
 
         await ctx.respond(f"**UserID:** {user.id}\n**Credits:** {user_crd}\n**Quests:** {user_quests}", ephemeral=True)
 
-    @discord.slash_command(name="ping", description="Get the bot's ping", guild_ids=guild_id)
+    # Stupid over the top ping command (yes, this is all matplotlib is used for)
+    @commands.slash_command(name="ping", description="Get the bot's ping (with a graph!)", guild_ids=guild_id)
     async def ping(self, ctx):
-        latency = round(self.bot.latency * 1000)
-        db_latency = await db.get_latency()
+        cmd_start = time.time()
+        await ctx.defer()
+        logger.info(f"[CMD] Generating ping info for {ctx.user.name}")
 
-        embed = discord.Embed(
-            title="Pong! 🦆",
-            color=0x45b702
-        )
-        embed.add_field(name="Bot Latency", value=f"`{latency}ms`{' (nice)' if db_latency == 69 else ''}", inline=True)
-        embed.add_field(name="DB Latency", value=f"`{db_latency}ms`", inline=True)
+        try:
+            def calculate_rate(start, end):
+                diff = end - start
+                return diff / 1 if diff > 0 else 0
 
-        await ctx.respond(embed=embed)
+            def format_bytes(size_bytes):
+                if size_bytes >= (1024 ** 3):
+                    return f"{round(size_bytes / (1024 ** 3), 2)} GB"
+                else:
+                    return f"{round(size_bytes / (1024 ** 2), 2)} MB"
+
+            # System Info
+            latency = round(self.bot.latency * 1000)
+            db_latency = round(await db.get_latency(), 3)
+            process = psutil.Process(os.getpid())
+            cpu_percent = process.cpu_percent(interval=1)
+            memory_info = process.memory_info()
+            rss_memory = format_bytes(memory_info.rss)
+            vms_memory = format_bytes(memory_info.vms)
+            threads = process.num_threads()
+            swap = psutil.swap_memory()
+
+            # Network Info
+            net_io_start = psutil.net_io_counters()
+            await asyncio.sleep(1)
+            net_io_end = psutil.net_io_counters()
+            net_sent_rate = calculate_rate(net_io_start.bytes_sent, net_io_end.bytes_sent)
+            net_recv_rate = calculate_rate(net_io_start.bytes_recv, net_io_end.bytes_recv)
+
+            # Uselss Infomation
+            meaningless_number = random.randint(1, 1000000)
+            useless_fact = random.choice([
+                "The sky is blue.",
+                "Elephants are gray.",
+                "This command is pointless.",
+                "Water is wet.",
+                "Fire is hot.",
+                "Grass is green.",
+                "The Earth is flat.",
+                "Time keeps ticking.",
+                "Chickens can't fly (much).",
+                "Bananas are yellow.",
+                "Cats say meow.",
+                "Zero times anything is zero.",
+                "Oxygen is necessary for breathing.",
+                "Snow is cold.",
+                "The moon is not made of cheese.",
+                "Penguins can't type.",
+                "Fish live in water.",
+                "Your nose is on your face.",
+                "This fact list is too long.",
+                "The Titanic did not have seatbelts."
+            ])
+
+            # Graph Generation
+            data = [latency, db_latency, cpu_percent, memory_info.rss / (1024 ** 2),
+                    threads, net_sent_rate / 1024, net_recv_rate / 1024, swap.percent]
+            labels = ["Bot Latency", "DB Latency", "CPU Usage", "RSS Memory", "Threads",
+                      "Net Sent", "Net Recv", "Swap"]
+            plt.figure(figsize=(14, 8))
+
+            # Mess up the graph
+            colors = [plt.cm.gist_ncar(random.random()) for _ in range(len(labels))]
+            plt.bar(labels, data, color=colors, width=random.uniform(0.5, 1.5))
+            plt.xticks(rotation=random.randint(-90, 90), fontsize=random.randint(8, 18))
+            plt.yticks(fontsize=random.randint(8, 18), color=random.choice(["red", "blue", "green", "yellow"]))
+            plt.title("TOP SECRET DUCK GRAPH", fontsize=random.randint(16, 30), fontweight="bold", color="green")
+
+            # Add stupid annotations
+            for i, value in enumerate(data):
+                plt.text(i, value + random.uniform(0, 10), f"{value:.2f}", fontsize=random.randint(10, 14),
+                         rotation=random.randint(-45, 45), color=random.choice(colors), ha="center")
+
+            # Add fake visual clutter
+            for _ in range(random.randint(5, 15)):
+                plt.plot(random.sample(range(len(labels)), 2),
+                         [random.uniform(min(data), max(data)) for _ in range(2)],
+                         linestyle=random.choice(['-', '--', '-.', ':']),
+                         linewidth=random.uniform(0.5, 3),
+                         color=random.choice(["pink", "cyan", "lime", "orange"]))
+
+            # Mess up the grid
+            plt.grid(axis='y', linestyle=random.choice(['--', '-.', ':']), alpha=random.uniform(0.3, 1.0),
+                     color=random.choice(["gray", "black"]))
+
+            # Hide some spines for no reason
+            plt.gca().spines['top'].set_visible(random.choice([True, False]))
+            plt.gca().spines['right'].set_visible(random.choice([True, False]))
+            plt.tight_layout()
+
+            # Save the graph
+            with io.BytesIO() as img_buffer:
+                plt.savefig(img_buffer, format='PNG')
+                img_buffer.seek(0)
+                file = discord.File(img_buffer, filename="system_metrics.png")
+
+            plt.close()
+
+            # Create Embed
+            embed = discord.Embed(title="Pong! 🦆", color=0x45b702)
+            embed.add_field(name="Bot Latency", value=f"`{latency}ms`{' (nice)' if latency == 69 else ''}", inline=True)
+            embed.add_field(name="DB Latency", value=f"`{db_latency}ms`", inline=True)
+            embed.add_field(name="CPU Usage", value=f"`{cpu_percent:.1f}%`", inline=True)
+            embed.add_field(name="RSS Memory", value=f"`{rss_memory}`", inline=True)
+            embed.add_field(name="VMS Memory", value=f"`{vms_memory}`", inline=True)
+            embed.add_field(name="Threads", value=f"`{threads}`", inline=True)
+            embed.add_field(name="Network Sent/s", value=f"`{net_sent_rate / 1024:.2f} KB`", inline=True)
+            embed.add_field(name="Network Received/s", value=f"`{net_recv_rate / 1024:.2f} KB`", inline=True)
+            embed.add_field(name="Swap Usage", value=f"`{swap.percent:.1f}%`", inline=True)
+            embed.add_field(name="Generation Time", value=f"`{round(time.time() - cmd_start, 2)}` Seconds", inline=True)
+            embed.add_field(name="Number", value=f"`{meaningless_number}`", inline=True)
+            embed.add_field(name="Did you know?", value=useless_fact, inline=True)
+            embed.set_image(url="attachment://system_metrics.png")
+
+            await ctx.respond(embed=embed, file=file)
+
+        except Exception as e:
+            await ctx.respond(f"Error: {e}")
 
     @discord.slash_command(name="shutdown", description="Emergency shutdown. Stops everything", guild_ids=guild_id)
     async def shutdown(self, ctx):
@@ -246,6 +385,29 @@ class Utility(commands.Cog):
 
         modal = ShutdownModel(title="Emergency Shutdown")
         await ctx.send_modal(modal)
+
+    # Smite people
+    @discord.slash_command(name="smite", description="Smite a user", guild_ids=guild_id)
+    async def smite(self, ctx, user: discord.User, duration: int, name: str = "Smitten Peasant"):
+        if not ctx.author.guild_permissions.administrator:
+            return await ctx.respond("Quack! You need to be an admin to run this!", ephemeral=True)
+
+        await ctx.defer()
+
+        original_name = user.display_name
+
+        await user.timeout_for(timedelta(seconds=duration))
+        await user.edit(nick=name)
+        await ctx.respond(f"⚡ {user.mention} has been smitten by the gods! ⚡", ephemeral=True)
+        await ctx.send("https://tenor.com/view/bird-lightning-strike-tragedy-fried-gif-2022815810689047932")
+        await asyncio.create_task(self.revert_nickname(user, duration, original_name))
+
+    async def revert_nickname(self, user: discord.User, duration: int, original_name: str):
+        await asyncio.sleep(duration)
+        try:
+            await user.edit(nick=original_name)
+        except discord.Forbidden:
+            logger.error(f"[CMD] Couldn't revert nickname for {user.id} due to missing permissions.")
 
     # Remote code execution :shocked:
     @commands.command(name="execute")

@@ -3,6 +3,29 @@ This is the source code for a very popular bot in a server im admin it. I releas
 
 *This is the third time I had to rewrite it due to crappy code lol.*
 
+# 🤖 Update 3.1: The Ai Update
+Lots of new stuff was added and fixed! Here are some of the most important changes:
+
+- **Quack AI Overhaul**
+    - Migrated to Google's **JSON Structured Output** (I came up with this idea first lol)
+    - Added more error handling
+    - Reworked some stuff to make it more readable
+    - **Quack can now:**
+      - get message content from replys
+      - generate ai images
+      - delete user messages
+      - time users out
+
+- **New Commands**
+    - **/shutdown** Shutdown the bot for emergencys
+    - **/annoy** Perfect for annoying people
+    - **/execute** Executes Python code on the server with access to local varriables such as ctx, message. Only the bot owner can run this. **WARNING: This will execute ANYTHING! I'm not responsible if you delete system32 💀**
+
+- **Bug Fixes**
+  - main.py as rewritten
+  - more error handling
+  - other small things
+
 # ✨ Features
 
 Well, what does it do? It has:
@@ -19,14 +42,15 @@ Initially added as a joke, this feature became the main reason people love this 
 The AI is powered by Google Gemini and can:
 
 - respond to the user (obviously)
+- generate ai images
 - react to the user's message
 - send the user a dm
 - report a message to staff if it's bad
+- delete a users message
+- timeout users
 - and more
 
 The bot is aware if the user is a staff member, time, chanel name, status of Roblox, and finally, user info (username and id)
-
-it can *sometimes* detect jailbreaks and reset the chat to stay in character.
 
 This *MIGHT* be the smartest chatbot on Discord.
 

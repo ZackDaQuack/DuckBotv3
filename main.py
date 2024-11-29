@@ -52,7 +52,7 @@ def run_bot():
 
 
 if __name__ == "__main__":
-    print(f"""{Fore.LIGHTYELLOW_EX}
+    print(fr"""{Fore.LIGHTYELLOW_EX}
     ______            _   ______       _         _____ 
     |  _  \          | |  | ___ \     | |       |____ |
     | | | |_   _  ___| | _| |_/ / ___ | |___   __   / /
